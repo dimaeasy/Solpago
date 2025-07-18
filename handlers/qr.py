@@ -1,17 +1,17 @@
-from aiogram import Router
-from aiogram.types import Message, BufferedInputFile
-from aiogram.filters import Command
-from utils.qr import generate_qr_code
+import qrcode
+from io import BytesIO
 
-router = Router()
-
-@router.message(Command("qr"))
-async def cmd_qr(message: Message):
-    data = message.text.removeprefix("/qr").strip()
-    if not data:
-        data = "https://solpago.com"
-
-    image_bytes = generate_qr_code(data)
-    qr_file = BufferedInputFile(image_bytes.read(), filename="qrcode.png")
-    
-    await message.answer_photo(qr_file, caption=f"QR для:\n<code>{data}</code>")
+def generate_qr_code(data: str) -> BytesIO:
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    output = BytesIO()
+    img.save(output, format="PNG")
+    output.seek(0)
+    return output
