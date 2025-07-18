@@ -1,17 +1,18 @@
-import telebot
-from payments import create_invoice
-from config import TELEGRAM_TOKEN, WELCOME_MESSAGE
+import asyncio
+from aiogram import Bot, Dispatcher
+from config import BOT_TOKEN
+from handlers import start
+from utils.logger import logger
 
-bot = telebot.TeleBot(TELEGRAM_TOKEN)
+bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
+dp = Dispatcher()
 
-@bot.message_handler(commands=['start'])
-def handle_start(message):
-    bot.send_message(message.chat.id, WELCOME_MESSAGE)
+# Регистрируем хендлеры
+dp.include_router(start.router)
 
-@bot.message_handler(commands=['pay'])
-def handle_pay(message):
-    invoice_url = create_invoice(user_id=message.from_user.id)
-    bot.send_message(message.chat.id, f"👉 Оплатите по ссылке: {invoice_url}")
+async def main():
+    logger.info("Запуск бота...")
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    bot.polling()
+    asyncio.run(main())
