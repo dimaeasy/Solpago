@@ -1,5 +1,10 @@
+from aiogram import Router
+from aiogram.types import Message, FSInputFile
+from aiogram.filters import Command
 import qrcode
 from io import BytesIO
+
+router = Router()
 
 def generate_qr_code(data: str) -> BytesIO:
     qr = qrcode.QRCode(
@@ -15,3 +20,14 @@ def generate_qr_code(data: str) -> BytesIO:
     img.save(output, format="PNG")
     output.seek(0)
     return output
+
+@router.message(Command("qr"))
+async def send_qr(message: Message):
+    data = "https://solpago.com"
+    qr_image = generate_qr_code(data)
+
+    path = "qr_temp.png"
+    with open(path, "wb") as f:
+        f.write(qr_image.read())
+
+    await message.answer_photo(FSInputFile(path), caption="Вот твой QR-код!")
