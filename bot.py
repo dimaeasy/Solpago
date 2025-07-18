@@ -1,29 +1,54 @@
-import asyncio
-from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, FSInputFile
-from aiogram.filters import Command
-from config import BOT_TOKEN
-from handlers import start
-from utils.logger import logger
-from utils.qr import generate_qr_code
+from aiogram import Bot, Dispatcher, types
+from aiogram.utils import executor
+from aiogram.types import InputFile
+import qrcode
+from io import BytesIO
+import logging
+import os
 
-bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
-dp = Dispatcher()
+# Вставь сюда свой токен
+BOT_TOKEN = "ВАШ_ТОКЕН_ЗДЕСЬ"
 
-# Регистрируем хендлеры
-dp.include_router(start.router)
+# Настройка логов
+logging.basicConfig(level=logging.INFO)
 
-@dp.message(Command("qr"))
-async def cmd_qr(message: Message):
-    data = "https://solpago.com"  # Здесь можно вставить любой текст или ссылку
-    image_path = generate_qr_code(data)
-    
-    file = FSInputFile(image_path, filename="qrcode.png")
-    await message.answer_photo(file, caption="Вот твой QR-код!")
+# Инициализация бота и диспетчера
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(bot)
 
-async def main():
-    logger.info("Запуск бота...")
-    await dp.start_polling(bot)
+# Команда /start
+@dp.message_handler(commands=['start'])
+async def send_welcome(message: types.Message):
+    await message.reply("Привет! Отправь /qr текст_или_ссылку, и я сгенерирую QR-код.")
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# Команда /qr
+@dp.message_handler(commands=['qr'])
+async def send_qr(message: types.Message):
+    data = message.get_args()
+    if not data:
+        data = "https://solpago.com"
+
+    # Генерация QR
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    # Сохраняем во временный файл
+    img_path = "temp_qr.png"
+    img.save(img_path)
+
+    # Отправка файла
+    await bot.send_photo(message.chat.id, photo=InputFile(img_path), caption=f"QR для:\n{data}")
+
+    # Удаляем временный файл
+    os.remove(img_path)
+
+# Запуск
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
