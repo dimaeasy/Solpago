@@ -13,7 +13,7 @@ def generate_qr_code(data: str) -> BytesIO:
     qr.make(fit=True)
 
     img = qr.make_image(fill_color="black", back_color="white")
-    img_byte_array = BytesIO()
-    img.save(img_byte_array, format='PNG')
-    img_byte_array.seek(0)
-    return img_byte_array
+    byte_io = BytesIO()
+    img.save(byte_io, format='PNG')
+    byte_io.seek(0)
+    return byte_io
